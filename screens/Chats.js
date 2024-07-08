@@ -1,237 +1,225 @@
-import { StyleSheet, Text, View, TouchableOpacity, Image, TextInput } from 'react-native';
-import React, { useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, FONTS, icons, images, SIZES } from '../constants';
-import { Feather, FontAwesome } from '@expo/vector-icons';
-import { Bubble, GiftedChat } from 'react-native-gifted-chat';
-const Chat = ({ navigation }) => {
-  const [messages, setMessages] = useState([]);
-  const [inputMessage, setInputMessage] = useState('');
-  const handleInputText = (text) => {
-    setInputMessage(text);
-  };
-  const renderMessage = (props) => {
-    const { currentMessage } = props;
-    if (currentMessage.user._id === 1) {
-      return (
-        <View
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            justifyContent: 'flex-end',
-          }}
-        >
-          <Bubble
-            {...props}
-            wrapperStyle={{
-              right: {
-                backgroundColor: COLORS.primary,
-                marginRight: 12,
-                marginVertical: 12,
-              },
-            }}
-            textStyle={{
-              right: {
-                color: COLORS.white,
-              },
-            }}
-          />
-        </View>
-      );
-    }
-    return <Bubble {...props} />;
-  };
-  const submitHandler = () => {
-    const message = {
-      _id: Math.random().toString(36).substr(2, 9),
-      text: inputMessage,
-      createdAt: new Date().getTime(),
-      user: { _id: 1 },
-    };
-    setMessages((previousMessages) => GiftedChat.append(previousMessages, [message]));
-    setInputMessage('');
-  };
-  return (
-    <SafeAreaView
-      style={{
-        flex: 1,
-        backgroundColor: COLORS.white,
-      }}
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Image,
+  FlatList,
+} from "react-native";
+import React, { useState } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { COLORS, SIZES, icons } from "../constants"; // Ensure icons is imported correctly
+import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
+import { messagesData } from "../data"; // Ensure the correct import of messages data
+
+
+
+const Chats = ({ navigation }) => {
+  const [search, setSearch] = useState('');
+  const [filteredUsers, setFilteredUsers] = useState(messagesData);
+
+  const handleSearch = (text) => {
+    setSearch(text);
+    const filteredData = messagesData.filter((user) =>
+    user.fullName.toLowerCase().includes(text.toLowerCase())
+    );
+    setFilteredUsers(filteredData);
+  }
+
+  const renderItem = ({ item, index }) => (
+    <TouchableOpacity
+      key={index}
+      onPress={() => navigation.navigate("Chat", { userName: item.fullName })}
+      style={[
+        styles.userContainer,
+        index % 2 !== 0 ? styles.oddBackground : null,
+      ]}
     >
-      {/* Render Header */}
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          paddingHorizontal: 16,
-          paddingVertical: 16,
-          backgroundColor: COLORS.white,
-          borderBottomColor: COLORS.gray,
-          borderBottomWidth: 0.2,
-        }}
-      >
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-          }}
-        >
-          <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginHorizontal: 12 }}>
-            <Image
-              source={icons.back}
-              resizeMode="contain"
-              style={{
-                height: 24,
-                width: 24,
-                tintColor: COLORS.black,
-              }}
-            />
-          </TouchableOpacity>
+      <View style={styles.userImageContainer}>
+        {item.isOnline && item.isOnline === true && (
+          <View style={styles.onlineIndicator} />
+        )}
+        <Image
+          source={item.userImg}
+          resizeMode="contain"
+          style={styles.userImage}
+        />
+      </View>
+
+      
+        <View style={styles.userInfoContainer}>
+          <Text style={styles.userName}>{item.fullName}</Text>
+          <Text style={styles.lastSeen }>{item.lastMessage}</Text>
+        </View>
+
+        <View style={{
+          position:"absolute",
+          right:4,
+          alignItems:"center",
+        }}>
+          <Text style={styles.lastMessageTime}>{item.lastMessageTime}</Text>
           <View>
-            <View
+            <TouchableOpacity
               style={{
-                position: 'absolute',
-                bottom: 0,
-                right: 4,
-                width: 10,
-                height: 10,
-                borderRadius: 5,
-                backgroundColor: COLORS.primary,
-                zIndex: 999,
-                borderWidth: 2,
-                borderColor: COLORS.white,
-              }}
-            />
-            <Image
-              source={images.user1}
-              resizeMode="contain"
-              style={{
-                height: 48,
-                width: 48,
-                borderRadius: 999,
-              }}
-            />
-          </View>
-          <View style={{ marginLeft: 16 }}>
-            <Text
-              style={{
-                ...FONTS.h4,
-                color: COLORS.black,
+                width: 20,
+                height: 20,
+                borderRadius: 10,
+                backgroundColor:  item.messageInQueue
+                ? COLORS.primary
+                : "transparent",
+                justifyContent: "center",
+                alignItems: "center",
+                marginTop: 12,
               }}
             >
-              Sebana Rudiger
-            </Text>
-            <Text
-              style={{
-                fontSize: 12,
-                color: COLORS.primary,
-                fontFamily: 'regular',
-              }}
-            >
-              Online
-            </Text>
-          </View>
+              <Text style={styles.messageInQueue}>{item.messageInQueue}</Text>
+            </TouchableOpacity>
+          </View>  
         </View>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-          }}
-        >
-          <TouchableOpacity style={{ marginHorizontal: 16 }}>
-            <Feather name="video" size={24} color={COLORS.gray} />
-          </TouchableOpacity>
+          
+      
+      
+    </TouchableOpacity>
+  );
+
+  const renderContents = () => {
+    return (
+      <View style={{ marginBottom: 110 }}>
+        <View style={styles.searchBar}>
           <TouchableOpacity>
-            <Feather name="phone" size={24} color={COLORS.gray} />
+            <Ionicons name="search-outline" size={24} color={COLORS.gray} />
           </TouchableOpacity>
-        </View>
-      </View>
-      {/* Render Chats */}
-      <GiftedChat
-        messages={messages}
-        renderInputToolbar={() => {
-          return null;
-        }}
-        user={{
-          _id: 1,
-        }}
-        minInputToolbarHeight={0}
-        renderMessage={renderMessage}
-      />
-      {/* Render Input Bar */}
-      <View style={styles.inputContainer}>
-        <View style={styles.inputMessageContainer}>
           <TextInput
-            style={styles.input}
-            placeholder="Type a message..."
-            placeholderTextColor={COLORS.black}
-            value={inputMessage}
-            onChangeText={handleInputText}
+            style={styles.searchInput}
+            placeholder="Search contacts..."
+            value={search}
+            onChangeText={handleSearch}
           />
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}
-          >
-            <TouchableOpacity style={{ marginHorizontal: 8 }}>
-              <Image
-                source={icons.camera}
-                resizeMode="contain"
-                style={{
-                  height: 20,
-                  width: 20,
-                  tintColor: COLORS.gray,
-                }}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Image
-                source={icons.stickyNote}
-                resizeMode="contain"
-                style={{
-                  height: 20,
-                  width: 20,
-                  tintColor: COLORS.gray,
-                }}
-              />
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity onPress={submitHandler} style={styles.sendButton}>
-            <FontAwesome name="send" size={22} color={COLORS.primary} />
+          <TouchableOpacity>
+            <Image
+              source={icons.editPencil} // Ensure this icon is defined correctly in your icons file
+              resizeMode="contain"
+              style={styles.icon}
+            />
           </TouchableOpacity>
         </View>
+
+        {/* Render Flat List for content */}
+        <FlatList
+          data={filteredUsers}
+          showsVerticalScrollIndicator={false}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
+        />
       </View>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.area}>
+      <StatusBar hidden />
+      <View style={styles.container}>{renderContents()}</View>
     </SafeAreaView>
   );
 };
+
 const styles = StyleSheet.create({
-  inputContainer: {
-    backgroundColor: COLORS.white,
-    height: 72,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inputMessageContainer: {   height: 54,
-    width: SIZES.width - 48,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    backgroundColor: COLORS.secondaryWhite,
-    borderRadius: 16,
-    alignItems: 'center',
-    borderColor: 'rgba(128, 128, 128, 0.4)',
-    borderWidth: 1,
-  },
-  input: {
-    color: COLORS.black,
+  area: {
     flex: 1,
-    paddingHorizontal: 10,
+    backgroundColor: COLORS.secondaryWhite,
   },
-  sendButton: {
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.secondaryWhite,
+    padding: 16,
+  },
+  searchBar: {
+    flexDirection: "row",
+    height: 50,
+    marginVertical: 22,
     backgroundColor: COLORS.white,
-    padding: 4,
-    borderRadius: 999,
-    marginHorizontal: 6,
+    width: SIZES.width - 32,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  searchInput: {
+    flex: 1,
+    height: "100%",
+    marginHorizontal: 12,
+    backgroundColor: COLORS.white,
+  },
+  icon: {
+    width: 24,
+    height: 24,
+    tintColor: COLORS.gray,
+  },
+  userContainer: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomColor: COLORS.secondaryWhite,
+    borderBottomWidth: 1,
+  },
+  oddBackground: {
+    backgroundColor: COLORS.white,
+  },
+  userImageContainer: {
+    paddingVertical: 15,
+    marginRight: 22,
+  },
+  onlineIndicator: {
+    height: 14,
+    width: 14,
+    borderRadius: 7,
+    backgroundColor: COLORS.primary,
+    position: "absolute",
+    top: 14,
+    right: 2,
+    zIndex: 999,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  userImage: {
+    height: 50,
+    width: 50,
+    borderRadius: 25,
+  },
+  userInfo: {
+    flexDirection: "row",
+    width: SIZES.width - 184,
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  userInfoContainer: {
+    flexDirection: "column",
+  },
+  userName: {
+    fontSize: 14,
+    fontFamily: "semiBold",
+    color: COLORS.black,
+    marginBottom: 4,
+  },
+  lastSeen:{
+    fontSize:14,
+    color: COLORS.secondaryGray,
+  },
+  
+  lastMessage: {
+    fontSize: 14,
+    color: COLORS.secondary,
+  },
+  lastMessageTime: {
+    fontSize: 12,
+    color: COLORS.black,
+  },
+  messageInQueue: {
+    fontSize: 12,
+    fontFamily: "regular",
+    color: COLORS.white,
   },
 });
-export default Chat;
+
+export default Chats;
